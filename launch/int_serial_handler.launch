@@ -1,0 +1,15 @@
+<launch>
+  <arg name="Device_Path"                           default="/dev/serial/by-id/usb-STMicroelectronics_STM32_STLink_066FFF303555483043224509-if02"/>
+  <arg name="Baud_Rate"                             default="9600"/>
+  <arg name="Toppic_For_Data_To_Be_Transmitted"     default="/Transmit_Serial_Data"/>
+  <arg name="Toppic_For_Recieved_Serial_Data"       default="/Recieved_Serial_Data"/>
+
+  <node name="int_serial_node" pkg="serial_node" type="int_serial_node">
+    <param name="Device_Path" value="$(arg Device_Path)" />
+    <param name="Baud_Rate" value="$(arg Baud_Rate)" />
+    <param name="Toppic_For_Data_To_Be_Transmitted" value="/Transmit_Serial_Data" />
+    <param name="Toppic_For_Recieved_Serial_Data" value="/Recieved_Serial_Data" />
+    <!-- <param name="Toppic_For_Data_To_Be_Transmitted" value="$(arg Toppic_For_Data_To_Be_Transmitted)" />
+    <param name="Toppic_For_Recieved_Serial_Data" value="$(arg Toppic_For_Recieved_Serial_Data)" /> -->
+  </node>
+</launch>
