@@ -21,7 +21,7 @@ public:
       node_.getParam("Toppic_For_Recieved_Serial_Data", Toppic_For_Recieved_Serial_Data);
 
       // serial(io,Device_Path)baud_rate
-      serial.set_option(boost::asio::serial_port_base::baud_rate(Baud_Rate));
+//      serial.set_option(boost::asio::serial_port_base::baud_rate(Baud_Rate));
 
       // Transmit_Sub_ = node_.subscribe<std_msgs::Int32>(Toppic_For_Data_To_Be_Transmitted, 100, &serial_node::Serial_Transmit_Callback, this);
       // Recieved_Pub_ = node_.advertise<std_msgs::String>(Toppic_For_Recieved_Serial_Data, 100, false);

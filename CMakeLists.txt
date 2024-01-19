@@ -4,11 +4,26 @@ project(serial_node)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
 
+
+
+## Find boost
+set(Boost_NO_SYSTEM_PATHS TRUE)
+if (Boost_NO_SYSTEM_PATHS)
+	set(Boost_DIR "$HOME/libs/boost_1_84_0/build/lib/cmake/Boost-1.84.0")
+	set(BOOST_ROOT "$HOME/libs/boost_1_84_0/build")
+	set(BOOST_INCLUDE_DIRS "${BOOST_ROOT}/include")
+	set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib")
+endif (Boost_NO_SYSTEM_PATHS)
+
+
+FIND_PACKAGE(Boost CONFIG)
+
+
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  Boost
+ # Boost
   roscpp
   rospy
   std_msgs
