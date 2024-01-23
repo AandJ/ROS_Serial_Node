@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="pointcloud_UDP_client_node" pkg="serial_node" type="pointcloud_UDP_client_node">
+
+  </node>
+
+</launch>

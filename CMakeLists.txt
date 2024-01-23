@@ -18,6 +18,14 @@ endif (Boost_NO_SYSTEM_PATHS)
 
 FIND_PACKAGE(Boost CONFIG)
 
+find_package(PCL 1.3 REQUIRED COMPONENTS
+  common
+  io
+  filters
+  features
+)
+
+find_package(PCL REQUIRED)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -134,12 +142,19 @@ CATKIN_DEPENDS roscpp rospy std_msgs
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+	${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/serial_node.cpp
 # )
+
+
+##include_directories( ${PCL_INCLUDE_DIRS} )
+##link_directories(${PCL_LIBRARY_DIRS})
+##add_definitions(${PCL_DEFINITIONS})
+
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -151,6 +166,12 @@ include_directories(include
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME} src/serial_node.cpp)
 add_executable(int_${PROJECT_NAME} src/int_serial_node.cpp)
+add_executable(pointcloud_TCP_server_node src/pointcloud_TCP_server_node.cpp)
+add_executable(pointcloud_TCP_client_node src/pointcloud_TCP_client_node.cpp)
+add_executable(pointcloud_UDP_server_node src/pointcloud_UDP_server_node.cpp)
+add_executable(pointcloud_UDP_client_node src/pointcloud_UDP_client_node.cpp)
+add_executable(test_script_node src/test_script.cpp)
+
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -169,6 +190,29 @@ target_link_libraries(${PROJECT_NAME}
 
 target_link_libraries(int_${PROJECT_NAME}
   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(pointcloud_TCP_server_node
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(pointcloud_TCP_client_node
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(pointcloud_UDP_server_node
+  ${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+)
+
+target_link_libraries(pointcloud_UDP_client_node
+  ${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
+)
+
+target_link_libraries(test_script_node
+  ${catkin_LIBRARIES}
+	${PCL_LIBRARIES}
 )
 #############
 ## Install ##

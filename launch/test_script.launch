@@ -1,0 +1,7 @@
+<launch>
+
+  <node name="test_script_node" pkg="serial_node" type="test_script_node">
+
+  </node>
+
+</launch>
