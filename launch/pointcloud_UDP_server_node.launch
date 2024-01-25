@@ -2,6 +2,11 @@
 
   <node name="pointcloud_UDP_server_node" pkg="serial_node" type="pointcloud_UDP_server_node">
 
+    <arg name="debug" value="false" />
+
+    <arg name="output_topic"               value="/camera/depth/points" />
+    <arg name="Output_Buffer_Length"       value="100" />
+
   </node>
 
 </launch>

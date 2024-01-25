@@ -135,8 +135,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
  INCLUDE_DIRS include
-#  LIBRARIES serial_node
-CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros
+ LIBRARIES ${PROJECT_NAME}
+ CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros
 #  DEPENDS system_lib
 )
 
