@@ -18,7 +18,7 @@ using namespace std;
 using namespace ros;
 using namespace Eigen;
 
-#define PCL_Topic "/camera/depth_registered/points"
+#define PCL_Topic "/camera/depth/points"
 
 #define PI 3.141592654
 #define Cloud_Buffer_Length 100
@@ -152,7 +152,7 @@ void PointCloud_UDP_Transmiter::scanCallback(const RGB_PointCloud::ConstPtr& clo
 
       serialize(header_seq, cloud_filtered.header.seq);
       serialize(header_stamp, cloud_filtered.header.stamp);
-      header_frame_id << cloud_filtered.header.frame_id;
+      header_frame_id << "map"; //cloud_filtered.header.frame_id;
 
       header << header_seq.str() << ';'  << header_stamp.str() << ';'  << header_frame_id.str();
 

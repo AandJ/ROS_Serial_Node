@@ -13,25 +13,21 @@ if (Boost_NO_SYSTEM_PATHS)
 	set(BOOST_ROOT "$HOME/libs/boost_1_84_0/build")
 	set(BOOST_INCLUDE_DIRS "${BOOST_ROOT}/include")
 	set(BOOST_LIBRARY_DIRS "${BOOST_ROOT}/lib")
-
-set(BOOST_INCLUDEDIR "${BOOST_ROOT}/include")
-set(BOOST_LIBRARYDIR "${BOOST_ROOT}/lib")
-
 endif (Boost_NO_SYSTEM_PATHS)
 
 
-set(Boost_DEBUG 1)
+set(Boost_DEBUG ON)
 
 FIND_PACKAGE(Boost CONFIG)
 
-#find_package(PCL 1.3 REQUIRED COMPONENTS
-#  common
-#  io
-#  filters
-#  features
-#)
+find_package(PCL 1.3 REQUIRED COMPONENTS
+  common
+  io
+  filters
+  features
+)
 
-#find_package(PCL REQUIRED)
+find_package(PCL REQUIRED)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -41,7 +37,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  pcl_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -136,7 +131,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES serial_node
-CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros
+CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -149,7 +144,7 @@ CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros
 include_directories(include
   ${catkin_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
-  ${PCL_INCLUDE_DIRS}
+	${PCL_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -171,12 +166,12 @@ include_directories(include
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-add_executable(${PROJECT_NAME} src/serial_node.cpp)
-add_executable(int_${PROJECT_NAME} src/int_serial_node.cpp)
+#add_executable(${PROJECT_NAME} src/serial_node.cpp)
+#add_executable(int_${PROJECT_NAME} src/int_serial_node.cpp)
 #add_executable(pointcloud_TCP_server_node src/pointcloud_TCP_server_node.cpp)
 #add_executable(pointcloud_TCP_client_node src/pointcloud_TCP_client_node.cpp)
-add_executable(pointcloud_UDP_server_node src/pointcloud_UDP_server_node.cpp)
-add_executable(pointcloud_UDP_client_node src/pointcloud_UDP_client_node.cpp)
+#add_executable(pointcloud_UDP_server_node src/pointcloud_UDP_server_node.cpp)
+#add_executable(pointcloud_UDP_client_node src/pointcloud_UDP_client_node.cpp)
 add_executable(test_script_node src/test_script.cpp)
 
 
@@ -191,13 +186,13 @@ add_executable(test_script_node src/test_script.cpp)
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+#target_link_libraries(${PROJECT_NAME}
+#  ${catkin_LIBRARIES}
+#)
 
-target_link_libraries(int_${PROJECT_NAME}
-  ${catkin_LIBRARIES}
-)
+#target_link_libraries(int_${PROJECT_NAME}
+#  ${catkin_LIBRARIES}
+#)
 
 #target_link_libraries(pointcloud_TCP_server_node
 #  ${catkin_LIBRARIES}
@@ -207,21 +202,20 @@ target_link_libraries(int_${PROJECT_NAME}
 #  ${catkin_LIBRARIES}
 #)
 
-target_link_libraries(pointcloud_UDP_server_node
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
+#target_link_libraries(pointcloud_UDP_server_node
+#  ${catkin_LIBRARIES}
+#	${PCL_LIBRARIES}
+#)
 
-target_link_libraries(pointcloud_UDP_client_node
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
-)
+#target_link_libraries(pointcloud_UDP_client_node
+#  ${catkin_LIBRARIES}
+#	${PCL_LIBRARIES}
+#)
 
-target_link_libraries(test_script_node
-  ${catkin_LIBRARIES}
-  ${PCL_LIBRARIES}
+#target_link_libraries(test_script_node
+#  ${catkin_LIBRARIES}
+#	${PCL_LIBRARIES}
 )
-
 #############
 ## Install ##
 #############
