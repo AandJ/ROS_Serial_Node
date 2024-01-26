@@ -2,10 +2,10 @@
 
   <node name="pointcloud_UDP_server_node" pkg="serial_node" type="pointcloud_UDP_server_node">
 
-    <arg name="debug" value="false" />
+    <param name="debug" value="true" />
 
-    <arg name="output_topic"               value="/camera/depth/points" />
-    <arg name="Output_Buffer_Length"       value="100" />
+    <param name="output_topic"               value="/new_cloud" />
+    <param name="Output_Buffer_Length"       value="100" />
 
   </node>
 

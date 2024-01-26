@@ -33,6 +33,37 @@ using namespace Eigen;
 
 enum message_stage {info, data};
 
+// Define objects and variables for ROS communication
+pcl::PCLPointCloud2 Output_cloud; // the reconstructed cloud to be output to the new ROS master
+Publisher point_cloud_publisher_;
+
+// Variables to store server parameters
+bool Debug_Mode;
+std::string output_topic;
+int Output_Buffer_Length;
+
+// Server comm defintions
+boost::asio::io_context io_context;
+udp::socket socket_(io_context, udp::endpoint(udp::v4(), 25000));
+udp::endpoint remote_endpoint_;
+boost::array<char, 65000> recv_buffer_; // Max is ~ 65000
+
+message_stage expected_message_stage;
+int recv_data_length_int;
+
+// UDP server function definitions
+void start_receive();
+
+void handle_receive(const boost::system::error_code& error,
+    std::size_t bytes_transferred);
+
+void Add_Recieved_Info(vector<string> split_info_stream);
+
+void handle_send(boost::shared_ptr<std::string> /*message*/,
+      const boost::system::error_code& /*error*/,
+      std::size_t /*bytes_transferred*/);
+
+
 std::string make_daytime_string()
 {
   using namespace std; // For time_t, time and ctime;
@@ -40,77 +71,19 @@ std::string make_daytime_string()
   return ctime(&now);
 }
 
-class PointCloud_UDP_Server
-{
-public:
-  // Class Constructor
-  PointCloud_UDP_Server(boost::asio::io_context& io_context) : socket_(io_context, udp::endpoint(udp::v4(), 25000))
-  {
-    // Get all parameters for the client node
-    node_.getParam("Debug_Mode", Debug_Mode);
-
-    node_.getParam("output_topic", output_topic);
-    node_.getParam("Output_Buffer_Length", Output_Buffer_Length);
-
-    // Initialiase variables
-    expected_message_stage = info;
-
-    // Advertise the output topic
-    point_cloud_publisher_ = node_.advertise<pcl::PCLPointCloud2> (output_topic, Output_Buffer_Length, false);
-
-    // Begin listening for data on specified port
-    start_receive();
-  }
-
-
-private:
-  // Define objects and variables for ROS communication
-  NodeHandle node_;
-  pcl::PCLPointCloud2 Output_cloud; // the reconstructed cloud to be output to the new ROS master
-  Publisher point_cloud_publisher_;
-  // std_msgs::String msg; //debug rosout msg
-
-  // Variables to store server parameters
-  bool Debug_Mode;
-  std::string output_topic;
-  int Output_Buffer_Length;
-
-  // Server comm defintions
-  udp::socket socket_;
-  udp::endpoint remote_endpoint_;
-  boost::array<char, 65000> recv_buffer_; // Max is ~ 65000
-
-
-  message_stage expected_message_stage;
-  int recv_data_length_int;
-
-  // UDP server function definitions
-  void start_receive();
-
-  void handle_receive(const boost::system::error_code& error,
-      std::size_t bytes_transferred);
-
-  void Add_Recieved_Info(vector<string> split_info_stream);
-
-  void handle_send(boost::shared_ptr<std::string> /*message*/,
-      const boost::system::error_code& /*error*/,
-      std::size_t /*bytes_transferred*/);
-
-};
-
 /* Function to listens on specified port for recieved point clouds */
-void PointCloud_UDP_Server::start_receive()
+void start_receive()
 {
     socket_.async_receive_from(
         boost::asio::buffer(recv_buffer_), remote_endpoint_,
-        boost::bind(&PointCloud_UDP_Server::handle_receive, this,
+        boost::bind(&handle_receive,
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
 }
 
 
 
-void PointCloud_UDP_Server::Add_Recieved_Info(vector<string> split_info_stream)
+void Add_Recieved_Info(vector<string> split_info_stream)
 {
   std::stringstream recv_height;
   std::stringstream recv_width;
@@ -203,7 +176,7 @@ void PointCloud_UDP_Server::Add_Recieved_Info(vector<string> split_info_stream)
 
 
 /* Function is called when a point cloud is recieved */
-void PointCloud_UDP_Server::handle_receive(const boost::system::error_code& error, std::size_t bytes_transferred)
+void handle_receive(const boost::system::error_code& error, std::size_t bytes_transferred)
 {
     if (!error)
     {
@@ -261,7 +234,7 @@ void PointCloud_UDP_Server::handle_receive(const boost::system::error_code& erro
 
     // Send onfirmation that the packet was recieved
     socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,
-        boost::bind(&PointCloud_UDP_Server::handle_send, this, message,
+        boost::bind(&handle_send, message,
           boost::asio::placeholders::error,
           boost::asio::placeholders::bytes_transferred));
 
@@ -272,7 +245,7 @@ void PointCloud_UDP_Server::handle_receive(const boost::system::error_code& erro
 
 
 
-void PointCloud_UDP_Server::handle_send(boost::shared_ptr<std::string> /*message*/,
+void handle_send(boost::shared_ptr<std::string> /*message*/,
       const boost::system::error_code& /*error*/,
       std::size_t /*bytes_transferred*/)
 {
@@ -287,10 +260,27 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "PointCloud_UDP_Server");
   ros::NodeHandle node_;
 
+  // Get all parameters for the client node
+  node_.getParam("Debug_Mode", Debug_Mode);
+
+  node_.getParam("output_topic", output_topic);
+  node_.getParam("Output_Buffer_Length", Output_Buffer_Length);
+
+  Debug_Mode = false;
+  output_topic = "points";
+  Output_Buffer_Length = 100;
+
+  // Initialiase variables
+  expected_message_stage = info;
+
+  // Advertise the output topic
+  point_cloud_publisher_ = node_.advertise<pcl::PCLPointCloud2> (output_topic, Output_Buffer_Length, false);
+
+
   try
   {
-    boost::asio::io_context io_context;
-    PointCloud_UDP_Server server(io_context);
+    // Begin listening for data on specified port
+    start_receive();
     io_context.run();
   }
   catch (std::exception& e)

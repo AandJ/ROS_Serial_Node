@@ -2,17 +2,19 @@
 
   <node name="pointcloud_UDP_client_node" pkg="serial_node" type="pointcloud_UDP_client_node">
 
-    <arg name="debug" value="false" />
 
-    <arg name="server_ip"                 value="192.168.1.203" />
-    <arg name="server_port"               value="25000" />
-    <arg name="input_topic"               value="/camera/depth/points" />
-    <arg name="Input_Buffer_Length"       value="100" />
+    <!-- parameter server not currently used as get param was failing to pull -->
+    <param name="debug" value="true" />
 
-    <arg name="Data_Output_Buffer_Size"   value="65000" />  <!-- max size is 65000 -->
-    <arg name="LeafSize_X"                value="0.15" />  <!-- min leaf size is 0.15 with the max buffer of 65000, if buffer is decreased leaf size must increase to reduce cloud data -->
-    <arg name="LeafSize_Y"                value="0.15" />
-    <arg name="LeafSize_Z"                value="0.15" />
+    <param name="server_ip"                 value="192.168.1.203" />
+    <param name="server_port"               value="25000" />
+    <param name="input_topic"               value="/camera/depth/points" />
+    <param name="Input_Buffer_Length"       value="100" />
+
+    <param name="Data_Output_Buffer_Size"   value="65000" />  <!-- max size is 65000 -->
+    <param name="LeafSize_X"                value="0.15" />  <!-- min leaf size is 0.15 with the max buffer of 65000, if buffer is decreased leaf size must increase to reduce cloud data -->
+    <param name="LeafSize_Y"                value="0.15" />
+    <param name="LeafSize_Z"                value="0.15" />
 
   </node>
 

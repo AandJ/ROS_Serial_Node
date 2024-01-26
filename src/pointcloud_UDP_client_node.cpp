@@ -26,56 +26,34 @@ using namespace ros;
 
 typedef pcl::PointCloud<pcl::PointXYZRGB> RGB_PointCloud;
 
-// Create PointCloud_Handler class to collect and combine the pointclouds for each direction
-class PointCloud_UDP_Transmiter {
-    public:
-        PointCloud_UDP_Transmiter();
 
-        void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg);
-    private:
-        // Define node for ROS communication
-        NodeHandle node_;
+// Create subscriber and publisher for input and output of the Pointcloud data
+ros::Subscriber scan_sub_;
+void scanCallback(const std_msgs::String::ConstPtr& cloud_msg);
 
-        // Create subscriber and publisher for input and output of the Pointcloud data
-        Subscriber scan_sub_;
+std_msgs::String msg;
 
-        // Variables to store the parameters of the client
-        bool Debug_Mode;
+// Server comm defintions
+boost::asio::io_context io_context;
+udp::resolver resolver(io_context);
+udp::endpoint receiver_endpoint;
+udp::socket socket_(io_context);
 
-        std::string server_ip;
-        std::string server_port;
-        std::string input_topic;
-        int Input_Buffer_Length;
+// Variables to store the parameters of the client
+bool Debug_Mode;
 
-        int Data_Output_Buffer_Size;
-        float LeafSize_X;
-        float LeafSize_Y;
-        float LeafSize_Z;
-};
+std::string server_ip;
+std::string server_port;
+std::string input_topic;
+int Input_Buffer_Length;
 
-// Class Constructor advertises output topic and subscribes to input topic
-PointCloud_UDP_Transmiter::PointCloud_UDP_Transmiter(){
-  // Get all parameters for the client node
-  node_.getParam("Debug_Mode", Debug_Mode);
-
-  node_.getParam("server_ip", server_ip);
-  node_.getParam("server_port", server_port);
-  node_.getParam("input_topic", input_topic);
-  node_.getParam("Input_Buffer_Length", Input_Buffer_Length);
-
-  node_.getParam("Data_Output_Buffer_Size", Data_Output_Buffer_Size);
-  node_.getParam("LeafSize_X", LeafSize_X);
-  node_.getParam("LeafSize_Y", LeafSize_Y);
-  node_.getParam("LeafSize_Z", LeafSize_Z);
-
-
-  // Listen on the specified input_topic for point cloud data, calling the specified scanCallback function upon reciept of data
-  scan_sub_ = node_.subscribe<RGB_PointCloud> (input_topic, Input_Buffer_Length, &PointCloud_UDP_Transmiter::scanCallback, this);
-}
-
+int Data_Output_Buffer_Size;
+float LeafSize_X;
+float LeafSize_Y;
+float LeafSize_Z;
 
 /* Function to recieve point clouds */
-void PointCloud_UDP_Transmiter::scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
+void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
   try
   {
 /************* Input of data and conversion to POINTCLOUD2 data types *********/
@@ -100,7 +78,7 @@ void PointCloud_UDP_Transmiter::scanCallback(const RGB_PointCloud::ConstPtr& clo
         std_msgs::String msg;
         // set data of ROS msg to the recieved string
         stringstream ss;
-        ss << "Cloud size: " << cloud_filtered.data.size();
+        ss << "Cloud size: ";// << cloud_filtered.data.size();
         msg.data = ss.str();
         ROS_INFO("%s", msg.data.c_str());
       }
@@ -198,23 +176,23 @@ void PointCloud_UDP_Transmiter::scanCallback(const RGB_PointCloud::ConstPtr& clo
       udp::endpoint receiver_endpoint =
         *resolver.resolve(udp::v4(), server_ip, server_port).begin();
 
-      udp::socket socket(io_context);
-      socket.open(udp::v4());
+      udp::socket socket_(io_context);
+      socket_.open(udp::v4());
 
-      socket.send_to(boost::asio::buffer(send_transmission_info_buf), receiver_endpoint);
+      socket_.send_to(boost::asio::buffer(send_transmission_info_buf), receiver_endpoint);
 
       boost::array<char, 128> recv_buf;
       udp::endpoint sender_endpoint;
-      size_t len = socket.receive_from(
+      size_t len = socket_.receive_from(
         boost::asio::buffer(recv_buf), sender_endpoint);
 
 
 
-      socket.send_to(boost::asio::buffer(send_transmission_data_buf), receiver_endpoint);
+      socket_.send_to(boost::asio::buffer(send_transmission_data_buf), receiver_endpoint);
 
       boost::array<char, 128> recv_2_buf;
       udp::endpoint sender_endpoint_2;
-      size_t len_2 = socket.receive_from(
+      size_t len_2 = socket_.receive_from(
         boost::asio::buffer(recv_2_buf), sender_endpoint_2);
 
     }
@@ -231,25 +209,56 @@ int main(int argc, char* argv[])
   ros::init(argc, argv, "pointcloud_UDP_client");
   ros::NodeHandle node_;
 
-  // Create object to respond to recieved pointcloud and output them via UDP to the destination address and port specified
-  PointCloud_UDP_Transmiter UDP_Transmiter;
+  // Get all parameters for the client node
+  // node_.getParam("Debug_Mode", Debug_Mode);
+  //
+  // node_.getParam("/server_ip", server_ip);
+  // node_.getParam("server_port", server_port);
+  // node_.getParam("input_topic", input_topic);
+  // node_.getParam("Input_Buffer_Length", Input_Buffer_Length);
+  //
+  // node_.getParam("Data_Output_Buffer_Size", Data_Output_Buffer_Size);
+  // node_.getParam("LeafSize_X", LeafSize_X);
+  // node_.getParam("LeafSize_Y", LeafSize_Y);
+  // node_.getParam("LeafSize_Z", LeafSize_Z);
 
+  Debug_Mode = false;
+
+  server_ip = "192.168.1.203";
+  server_port = "25000";
+  input_topic = "/camera/depth/points";
+  Input_Buffer_Length = 100;
+
+  Data_Output_Buffer_Size = 65000;
+  LeafSize_X = 0.15;
+  LeafSize_Y = 0.15;
+  LeafSize_Z = 0.15;
+
+
+  receiver_endpoint = *resolver.resolve(udp::v4(), server_ip, server_port).begin();
+  socket_.open(udp::v4());
+
+  scan_sub_ = node_.subscribe<RGB_PointCloud> (input_topic, Input_Buffer_Length, &scanCallback);
+
+
+  std_msgs::String msg;
   while (ros::ok())
   {
 
     try
     {
-
-      spin();
-
+       ros::spinOnce();
     }
-    catch (std::exception& e)
+    catch(boost::system::system_error& e)
     {
-      std::cerr << e.what() << std::endl;
+        // ERROR condition for access to the serial port
+        std::stringstream ss;
+        ss << "Error: " << e.what() << endl;
+        msg.data = ss.str();
+        ROS_INFO("%s", msg.data.c_str());
+        return 1;
     }
-
   }
-
 
   return 0;
 }
