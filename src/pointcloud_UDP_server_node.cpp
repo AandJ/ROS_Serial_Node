@@ -180,10 +180,7 @@ void handle_receive(const boost::system::error_code& error, std::size_t bytes_tr
 {
     if (!error)
     {
-      //Prep an output string
-      boost::shared_ptr<std::string> message(
-          new std::string(make_daytime_string()));
-
+      std::string Confirm_reciept_str;
 
       if(expected_message_stage == info) {
           // First check that the recieved msgs is the INFO packet
@@ -194,11 +191,24 @@ void handle_receive(const boost::system::error_code& error, std::size_t bytes_tr
 
           if( ( split_info_stream.size() == 9 ) || ( split_info_stream.size() == 10 ) )
           {
+            if(Debug_Mode)
+            {
+              std_msgs::String debug_msg;
+              // ERROR condition for access to the serial port
+              std::stringstream debug_ss;
+              debug_ss << "Got Info  " << split_info_stream.size();
+              debug_msg.data = debug_ss.str();
+              ROS_INFO("%s", debug_msg.data.c_str());
+            }
+
+
             //Add the recieved info to the current ROS pointcloud
             Add_Recieved_Info(split_info_stream);
 
             // Tell the server that the next packet should be data
             expected_message_stage = data;
+            Confirm_reciept_str = "Got Info packet";
+
           } else {
             //throw error as we did not recieve complete infomation packet
             std_msgs::String msg;
@@ -206,11 +216,23 @@ void handle_receive(const boost::system::error_code& error, std::size_t bytes_tr
             ss << "Not Info packet -- data will being ignored";
             msg.data = ss.str();
             ROS_INFO("%s", msg.data.c_str());
+
+            Confirm_reciept_str = "Expected info but didn't recieve info packet";
           }
 
         }
         else if (expected_message_stage == data)
         {
+          if(Debug_Mode)
+          {
+            std_msgs::String debug_msg;
+            // ERROR condition for access to the serial port
+            std::stringstream debug_ss;
+            debug_ss << "Got Data";
+            debug_msg.data = debug_ss.str();
+            ROS_INFO("%s", debug_msg.data.c_str());
+          }
+
           // Unpack recieved data and check that it matches the length specified in previous info packet
           stringstream recieved_Data;
           stringstream rec_data;
@@ -228,9 +250,14 @@ void handle_receive(const boost::system::error_code& error, std::size_t bytes_tr
           // output the cloud
           point_cloud_publisher_.publish(Output_cloud);
 
-          // Tell the server that the next packet should be data
+          // Tell the server that the next packet should be info
           expected_message_stage = info;
+          Confirm_reciept_str = "Got Data packet";
+
         }
+
+    //Prep the confirmation output string
+    boost::shared_ptr<std::string> message(new std::string(Confirm_reciept_str));
 
     // Send onfirmation that the packet was recieved
     socket_.async_send_to(boost::asio::buffer(*message), remote_endpoint_,

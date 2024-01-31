@@ -30,6 +30,8 @@ typedef pcl::PointCloud<pcl::PointXYZRGB> RGB_PointCloud;
 // Create subscriber and publisher for input and output of the Pointcloud data
 ros::Subscriber scan_sub_;
 void scanCallback(const std_msgs::String::ConstPtr& cloud_msg);
+// Debug ROS publisher to output the filter pointcloud
+Publisher debug_point_cloud_publisher_;
 
 std_msgs::String msg;
 
@@ -52,6 +54,13 @@ float LeafSize_X;
 float LeafSize_Y;
 float LeafSize_Z;
 
+
+
+
+int Biggest_Cloud_Size = 0;
+
+
+
 /* Function to recieve point clouds */
 void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
   try
@@ -64,26 +73,77 @@ void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
 
 
 /*************************** Filter the input cloud ***************************/
+      pcl::PCLPointCloud2 init_cloud_filtered;
+      pcl::VoxelGrid<pcl::PCLPointCloud2> init_sor;
+      init_sor.setInputCloud (cloud_unfiltered);
+      init_sor.setLeafSize (0.01, 0.01, 0.01);
+      init_sor.filter (init_cloud_filtered);   // Perform the voxel filtering
+
       pcl::PCLPointCloud2 cloud_filtered;
-      pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
-      sor.setInputCloud (cloud_unfiltered);
-      // sor.setLeafSize (0.01, 0.01, 0.01);
-      sor.setLeafSize (LeafSize_X, LeafSize_Y, LeafSize_Z);
-      sor.filter (cloud_filtered);   // Perform the voxel filtering
 
 
-      // If debug is enabled output the size of the filtered cloud
-      if(Debug_Mode)
+      //Test mapping
+      int input = init_cloud_filtered.data.size();
+
+      //if scan is too big re filter with leaf size based from size of scan, bigger scan bigger leaf size
+      if(input < 65000)
       {
-        std_msgs::String msg;
-        // set data of ROS msg to the recieved string
-        stringstream ss;
-        ss << "Cloud size: ";// << cloud_filtered.data.size();
-        msg.data = ss.str();
-        ROS_INFO("%s", msg.data.c_str());
+        cloud_filtered = init_cloud_filtered;
+      } else {
+        int maxInRange = 9830400;
+        int minInRange = 0;
+        float maxOutRange = 0.45;
+        float minOutRange = 0.03;
+
+        float mapped_filter_vals = minOutRange + (input - minInRange) * (maxOutRange - minOutRange) / (maxInRange - minInRange);
+
+
+        pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+        sor.setInputCloud (cloud_unfiltered);
+        sor.setLeafSize (mapped_filter_vals, mapped_filter_vals, mapped_filter_vals);
+        // sor.setLeafSize (LeafSize_X, LeafSize_Y, LeafSize_Z);
+        sor.filter (cloud_filtered);   // Perform the voxel filtering
+
+        // If debug is enabled output the size of the filtered cloud
+        if(Debug_Mode)
+        {
+          std_msgs::String msg;
+          // set data of ROS msg to the recieved string
+          stringstream ss;
+          ss << "a map of:" << mapped_filter_vals << "  gave a Filtered Cloud size: " << cloud_filtered.data.size();
+          msg.data = ss.str();
+          ROS_INFO("%s", msg.data.c_str());
+
+          debug_point_cloud_publisher_.publish(cloud_filtered);
+        }
       }
 
-/*********************** Serialize the filtered cloud  ************************/
+      // // Test block to determine largest filtered cloud for a leaf size
+      // if(Debug_Mode)
+      // {
+      //   if(cloud_filtered.data.size() > Biggest_Cloud_Size)
+      //   {
+      //     Biggest_Cloud_Size = cloud_filtered.data.size();
+      //     std_msgs::String msg;
+      //     // set data of ROS msg to the recieved string
+      //     stringstream ss;
+      //     ss << "New biggest Cloud size: " << Biggest_Cloud_Size;
+      //     msg.data = ss.str();
+      //     ROS_INFO("%s", msg.data.c_str());
+      //   }
+      // }
+      //
+
+      if(cloud_filtered.data.size() > 65000)
+      {
+        //error as filtered cloud still too big to be transmitted
+        std_msgs::String msg;
+        stringstream ss;
+        ss << "Filtered cloud exceeds allowed size";
+        msg.data = ss.str();
+        ROS_INFO("%s", msg.data.c_str());
+      } else {
+// /*********************** Serialize the filtered cloud  ************************/
       // Serialization streams for point cloud Data
       std::stringstream header;
       std::stringstream height;
@@ -102,6 +162,7 @@ void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
 
       serialize(header_seq, cloud_filtered.header.seq);
       serialize(header_stamp, cloud_filtered.header.stamp);
+      // Debug set the frame id to map so it can be visualised without publising a TF tree
       header_frame_id << "map"; //cloud_filtered.header.frame_id;
 
       header << header_seq.str() << ';'  << header_stamp.str() << ';'  << header_frame_id.str();
@@ -179,15 +240,35 @@ void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
       udp::socket socket_(io_context);
       socket_.open(udp::v4());
 
-      socket_.send_to(boost::asio::buffer(send_transmission_info_buf), receiver_endpoint);
+      if(Debug_Mode)
+      {
+        ROS_INFO("sending info");
+      }
 
-      boost::array<char, 128> recv_buf;
-      udp::endpoint sender_endpoint;
-      size_t len = socket_.receive_from(
-        boost::asio::buffer(recv_buf), sender_endpoint);
+      std::string returned_msg_check_str = "init";
 
+      do{ // Send info packet until server responds that it has it
+        socket_.send_to(boost::asio::buffer(send_transmission_info_buf), receiver_endpoint);
 
+        boost::array<char, 128> recv_buf;
+        udp::endpoint sender_endpoint;
+        size_t len = socket_.receive_from(
+          boost::asio::buffer(recv_buf), sender_endpoint);
 
+        if(Debug_Mode)
+        {
+          std_msgs::String msg1;
+          // ERROR condition for access to the serial port
+          std::stringstream ss1;
+          ss1 << recv_buf.data();
+          msg1.data = ss1.str();
+          ROS_INFO("%s", msg1.data.c_str());
+        }
+
+        returned_msg_check_str = recv_buf.data();
+      } while(returned_msg_check_str != "Got Info packet");
+
+      // Now the server has the info, send the data
       socket_.send_to(boost::asio::buffer(send_transmission_data_buf), receiver_endpoint);
 
       boost::array<char, 128> recv_2_buf;
@@ -195,6 +276,28 @@ void scanCallback(const RGB_PointCloud::ConstPtr& cloud_msg){
       size_t len_2 = socket_.receive_from(
         boost::asio::buffer(recv_2_buf), sender_endpoint_2);
 
+      returned_msg_check_str = recv_2_buf.data();
+
+      if(returned_msg_check_str == "Got Data packet")
+      {
+        if(Debug_Mode)
+        {
+          std_msgs::String msg2;
+          // ERROR condition for access to the serial port
+          std::stringstream ss2;
+          ss2 << recv_2_buf.data();
+          msg2.data = ss2.str();
+          ROS_INFO("%s", msg2.data.c_str());
+        }
+      } else {
+        //throw error as server did not recieve data packet
+        std_msgs::String msg;
+        stringstream ss;
+        ss << "data send failed, scan will be ignored";
+        msg.data = ss.str();
+        ROS_INFO("%s", msg.data.c_str());
+      }
+    }
     }
     catch (std::exception& e)
     {
@@ -226,10 +329,11 @@ int main(int argc, char* argv[])
 
   server_ip = "192.168.1.203";
   server_port = "25000";
-  input_topic = "/camera/depth/points";
-  Input_Buffer_Length = 100;
+  // input_topic = "/camera/depth/points";
+  input_topic = "/camera/depth_registered/points";
+  Input_Buffer_Length = 1;
 
-  Data_Output_Buffer_Size = 65000;
+  Data_Output_Buffer_Size = 65000; // Not implemented
   LeafSize_X = 0.15;
   LeafSize_Y = 0.15;
   LeafSize_Z = 0.15;
@@ -237,6 +341,12 @@ int main(int argc, char* argv[])
 
   receiver_endpoint = *resolver.resolve(udp::v4(), server_ip, server_port).begin();
   socket_.open(udp::v4());
+
+
+  if(Debug_Mode)
+  {
+    debug_point_cloud_publisher_ = node_.advertise<pcl::PCLPointCloud2> ("/Debug_PointCloud", 1, false);
+  }
 
   scan_sub_ = node_.subscribe<RGB_PointCloud> (input_topic, Input_Buffer_Length, &scanCallback);
 
