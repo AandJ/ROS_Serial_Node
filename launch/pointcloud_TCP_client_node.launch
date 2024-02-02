@@ -1,7 +1,0 @@
-<launch>
-
-  <node name="pointcloud_TCP_client_node" pkg="serial_node" type="pointcloud_TCP_client_node">
-
-  </node>
-
-</launch>

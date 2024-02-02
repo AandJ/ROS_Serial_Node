@@ -11,6 +11,8 @@
     <param name="input_topic"               value="/camera/depth/points" />
     <param name="Input_Buffer_Length"       value="100" />
 
+    <param name="colour"                    value="true"/>
+
     <param name="Data_Output_Buffer_Size"   value="65000" />  <!-- max size is 65000 -->
     <param name="LeafSize_X"                value="0.15" />  <!-- min leaf size is 0.15 with the max buffer of 65000, if buffer is decreased leaf size must increase to reduce cloud data -->
     <param name="LeafSize_Y"                value="0.15" />
